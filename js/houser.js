@@ -15916,62 +15916,63 @@ HOUSER.define('Views/Property',[
 			options = options || {};
 
 			self.model = HOUSER.current_view_model = HOUSER.current_prop;
-			self.addExtraData().done(function () {
-				//console.log(data);
-				self.render();
-			});
+			// self.addExtraData().done(function () {
+			// 	//console.log(data);
+			// 	self.render();
+			// });
+			self.render();
 
 		},
 
 		/**
 		@Description:	Get data from zillow and or other sources..
 		**/
-		addExtraData: function () {
-			var self = this,
-				deferred = $.Deferred(),
-				model = self.model,
-				data;
-
-			data = {
-				'zws-id': ajax.api_keys.zillow,
-				address: (model.get('address')),
-				citystatezip: (model.get('city') + '+' + model.get('state'))
-			};
-
-			ajax.genericCallXML('POST', data, ajax.servers.zillow, ajax.service.zillow.deepSearch, {
-				success: function (resp) {
-					if (resp) {
-						var zd;
-						if (resp.getElementsByTagName('result').length) {
-							zd = xml.toJSON(resp.getElementsByTagName('result')[0]);
-							model.set('zpid', zd.zpid['#text']);
-							model.set('baths', zd.bathrooms['#text']);
-							model.set('beds', zd.bedrooms['#text']);
-							model.set('sqft', zd.finishedSqFt['#text']);
-							model.set('lot', zd.lotSizeSqFt['#text']);
-							model.set('year_built', zd.yearBuilt['#text']);
-							model.set('zest_avg', self.asDollar(zd.zestimate.amount['#text']));
-							model.set('zest_high', self.asDollar(zd.zestimate.valuationRange.high['#text']));
-							model.set('zest_low', self.asDollar(zd.zestimate.valuationRange.low['#text']));
-							model.set('last_sold_date', zd.lastSoldDate ? zd.lastSoldDate['#text'] : 'na');
-							model.set('last_sold_price', zd.lastSoldPrice ? '$' + self.asDollar(zd.lastSoldPrice['#text']) : 'na');
-							deferred.resolve();
-						} else {
-							console.log('Error! Zillow says: ' + $(resp.getElementsByTagName('message')).find('text').text());
-							deferred.resolve();
-						}
-
-					} else {
-						alert('Unkown zillow error.');
-					}
-				},
-				error: function (resp) {
-					console.error(resp);
-					deferred.resolve();
-				}
-			});
-			return deferred;
-		},
+		// addExtraData: function () {
+		// 	var self = this,
+		// 		deferred = $.Deferred(),
+		// 		model = self.model,
+		// 		data;
+		//
+		// 	data = {
+		// 		'zws-id': ajax.api_keys.zillow,
+		// 		address: (model.get('address')),
+		// 		citystatezip: (model.get('city') + '+' + model.get('state'))
+		// 	};
+		//
+		// 	ajax.genericCallXML('POST', data, ajax.servers.zillow, ajax.service.zillow.deepSearch, {
+		// 		success: function (resp) {
+		// 			if (resp) {
+		// 				var zd;
+		// 				if (resp.getElementsByTagName('result').length) {
+		// 					zd = xml.toJSON(resp.getElementsByTagName('result')[0]);
+		// 					model.set('zpid', zd.zpid['#text']);
+		// 					model.set('baths', zd.bathrooms['#text']);
+		// 					model.set('beds', zd.bedrooms['#text']);
+		// 					model.set('sqft', zd.finishedSqFt['#text']);
+		// 					model.set('lot', zd.lotSizeSqFt['#text']);
+		// 					model.set('year_built', zd.yearBuilt['#text']);
+		// 					model.set('zest_avg', self.asDollar(zd.zestimate.amount['#text']));
+		// 					model.set('zest_high', self.asDollar(zd.zestimate.valuationRange.high['#text']));
+		// 					model.set('zest_low', self.asDollar(zd.zestimate.valuationRange.low['#text']));
+		// 					model.set('last_sold_date', zd.lastSoldDate ? zd.lastSoldDate['#text'] : 'na');
+		// 					model.set('last_sold_price', zd.lastSoldPrice ? '$' + self.asDollar(zd.lastSoldPrice['#text']) : 'na');
+		// 					deferred.resolve();
+		// 				} else {
+		// 					console.log('Error! Zillow says: ' + $(resp.getElementsByTagName('message')).find('text').text());
+		// 					deferred.resolve();
+		// 				}
+		//
+		// 			} else {
+		// 				alert('Unkown zillow error.');
+		// 			}
+		// 		},
+		// 		error: function (resp) {
+		// 			console.error(resp);
+		// 			deferred.resolve();
+		// 		}
+		// 	});
+		// 	return deferred;
+		// },
 
 		/**
 		@Description:	Render the view.
