@@ -15967,7 +15967,7 @@ HOUSER.define('Views/Property',[
 				},
 				error: function (resp) {
 					console.error(resp);
-					deferred.reject();
+					deferred.resolve();
 				}
 			});
 			return deferred;
