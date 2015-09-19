@@ -15188,7 +15188,7 @@ HOUSER.define('js/ajax',[], function () {
 				var url = _url,
 					deferred = $.Deferred();
 
-				if (data.length > 0) {
+				if (JSON.stringify(data).length > 2) {
 					url += '?'
 				}
 				_.each(data, function (item, key) {
