@@ -15200,9 +15200,15 @@ HOUSER.define('js/ajax',[], function () {
 					url = url.substring(0, url.length - 1); // Remove last &
 				}
 
-				$.get(this.proxy.live, {url: url}).done(function (resp) {
+				$.ajax({
+					type: 'GET',
+					url: this.proxy.dev,
+					data: {url: url},
+					contentType: 'text/xml'
+				}).done(function (resp) {
 					deferred.resolve(resp);
 				});
+
 				return deferred;
 			},
 			post: function (data, service, callback) {
