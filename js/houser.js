@@ -15195,7 +15195,7 @@ HOUSER.define('js/ajax',[], function () {
 					url += key + '=' + item + '&';
 				})
 				url = url.substring(0, url.length - 1); // Remove last &
-				url = url.replace(/\s/g, "+");
+				//url = url.replace(/\s/g, "+");
 				$.get(this.proxy.live, {url: url}).done(function (resp) {
 					deferred.resolve(resp);
 				});
