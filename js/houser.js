@@ -14728,7 +14728,7 @@ HOUSER.define('Collections/SubView',['backbone',
 		'underscore',
 		'jquery'
 ], function (Backbone, _, $) {
-
+	
 
 	var SubViewCollection = Backbone.Collection.extend({
 	});
@@ -14737,7 +14737,7 @@ HOUSER.define('Collections/SubView',['backbone',
 });
 HOUSER.define('Views/SubViewSuper',[
 ], function () {
-
+	
 
 	var SubView = Backbone.View.extend({
 		remove: function() {
@@ -14761,7 +14761,7 @@ HOUSER.define('Views/SubViewSuper',[
   java, location, Components, FileUtils */
 
 HOUSER.define('text',['module'], function (module) {
-
+    
 
     var text, fs, Cc, Ci, xpcIsWindows,
         progIds = ['Msxml2.XMLHTTP', 'Microsoft.XMLHTTP', 'Msxml2.XMLHTTP.4.0'],
@@ -15148,7 +15148,7 @@ HOUSER.define('Models/Signin',[
 	'underscore',
 	'backbone'
 ], function ($, _, Backbone) {
-
+	
 
 	var Model = Backbone.Model.extend({
 		defaults: {
@@ -15191,8 +15191,8 @@ HOUSER.define('js/ajax',[], function () {
 				if (data.length > 0) {
 					url += '?'
 				}
-				_.each(data, function (item, index) {
-					url += Object.keys(item) + '=' + item + '&';
+				_.each(data, function (item, key) {
+					url += key + '=' + item + '&';
 				})
 				url.substring(0, url.length - 2); // Remove last &
 
@@ -15230,7 +15230,7 @@ HOUSER.define('Views/Signin',[
 	'Models/Signin',
 	'js/ajax'
 ], function (SubView, _template, Model, ajax) {
-
+	
 
 	var View = SubView.extend({
 
@@ -15355,7 +15355,7 @@ HOUSER.define('Views/Signup',[
 	'Models/Signin',
 	'js/ajax'
 ], function (SubView, welcome_template, Model, ajax) {
-
+	
 
 	var View = SubView.extend({
 
@@ -15364,7 +15364,7 @@ HOUSER.define('Views/Signup',[
 			'click .houser-submit-signup': 'submitSignup',
 			'click .houser-signin-button': 'signupClick'
 		},
-
+		
 		el: $('.wrapper'),
 		selector: '.wrapper',
 		template: _.template(welcome_template),
@@ -15374,9 +15374,9 @@ HOUSER.define('Views/Signup',[
 		**/
 		initialize: function (options) {
 			var self = this;
-
+			
 			options = options || {};
-
+			
 			self.model = HOUSER.current_view_model = new Model(options.model);
 			self.render();
 		},
@@ -15389,16 +15389,16 @@ HOUSER.define('Views/Signup',[
 				model = self.model;
 
 			$(self.selector).html(self.template(model));
-
+			
 			$('.houser-signin-email').val(model.get('email'));
 			$('.houser-signin-password').val(model.get('password'));
 			$('.houser-signin-name').val(model.get('name'));
-
+			
 			window.setTimeout(function () {
 				$('.signin_flex_form').addClass('show');
 			}, 100);
 		},
-
+		
 		/**
 		@Description:	Update model with data from inputs.
 		@Events:		keyup .houser_signin_input
@@ -15406,38 +15406,38 @@ HOUSER.define('Views/Signup',[
 		updateModel: function () {
 			var self = this,
 				model = self.model;
-
+			
 			model.set({'email': $('.houser-signin-email').val()});
 			model.set({'password': $('.houser-signin-password').val()});
 			model.set({'name': $('.houser-signin-name').val()});
-
+			
 		},
-
+		
 		/**
 		@Description:	Submit login, set token, and redirect.
 		@Events:		click .houser-submit-signin
 		**/
 		submitSignup: function (e) {
 			e.preventDefault();
-
+			
 			var self = this,
 				model = self.model,
 				data;
-
+			
 			self.updateModel();
-
+			
 			data = {
 				email: model.get('email'),
 				password: model.get('password'),
 				name: model.get('name')
 			};
-
+			
 			//
 			//
 			// CREATE SERVICE AND AJAX CALL
 			//
 			//
-
+			
 			HOUSER.router.navigate('welcome', {trigger: true});
 		},
 
@@ -15447,7 +15447,7 @@ HOUSER.define('Views/Signup',[
 		**/
 		signupClick: function (e) {
 			e.preventDefault();
-
+			
 			var self =this,
 				data = {
 					model: {
@@ -15456,7 +15456,7 @@ HOUSER.define('Views/Signup',[
 						name: self.model.get('name')
 					}
 				};
-			HOUSER.router.navigate('signin?' + JSON.stringify(data), {trigger: true});
+			HOUSER.router.navigate('signin?' + JSON.stringify(data), {trigger: true});	
 		},
 	});
 
@@ -15470,7 +15470,7 @@ HOUSER.define('Models/Property_List',[
 	'underscore',
 	'backbone'
 ], function ($, _, Backbone) {
-
+	
 
 	var Model = Backbone.Model.extend({
 		defaults: {
@@ -15492,7 +15492,7 @@ HOUSER.define('Models/Property',[
 	'underscore',
 	'backbone'
 ], function ($, _, Backbone) {
-
+	
 
 	var PropertyModel = Backbone.Model.extend({
 		defaults: {
@@ -15540,7 +15540,7 @@ HOUSER.define('Collections/Property',[
 	'backbone',
 	'Models/Property'
 ], function ($, _, Backbone, Property) {
-
+	
 
 	var PropertyCollection = Backbone.Collection.extend({
 		model: Property
@@ -15554,7 +15554,7 @@ HOUSER.define('Collections/Property_List',[
 	'backbone',
 	'Models/Property_List'
 ], function ($, _, Backbone, PropertyList) {
-
+	
 
 	var PropertyListCollection = Backbone.Collection.extend({
 		model: PropertyList
@@ -15593,7 +15593,7 @@ HOUSER.define('js/Data_Utils/Property',[], function () {
 				return dates;
 			},
 			testSetHeaders: function () {
-
+				
 			},
 
 			// _getPropsFromCounty: function (date) {
@@ -15703,7 +15703,7 @@ HOUSER.define('Views/Property_Lists',[
 	'js/ajax',
 	'js/Data_Utils/Property'
 ], function (SubView, _template, Model, PropertyCollection, Collection, ajax, tps) {
-
+	
 
 	var View = SubView.extend({
 
@@ -15809,7 +15809,7 @@ HOUSER.define('Views/Property_List',[
 	'text!Templates/property_list.tmpl',
 	'js/ajax'
 ], function (SubView, _template, ajax) {
-
+	
 
 	var View = SubView.extend({
 
@@ -15915,7 +15915,7 @@ HOUSER.define('Views/Property',[
 	'js/xml',
 	'js/Data_Utils/Property'
 ], function (SubView, _template, ajax, xml, tps) {
-
+	
 
 	var View = SubView.extend({
 
@@ -16048,7 +16048,7 @@ HOUSER.define('Views/Property',[
 				resp = resp.replace(/src="/g, 'data-src="');
 				var img_array = $(resp).find('a img[data-src*="sketches"]').map(function () {return $(this).data('src')}).sort();
 
-				var loadImage = function (index) { 
+				var loadImage = function (index) {
 					if (index >= img_array.length) {
 						return;
 					}
@@ -16095,7 +16095,7 @@ HOUSER.define('Master/Master_View',['Collections/SubView',
 		'Views/Property_List',
 		'Views/Property'
 ], function (SubViewCollection, v_signin, v_signup, v_property_lists, v_property_list, v_property) {
-
+	
 
 	/**
 	@ClassName:		MasterView.
@@ -16198,7 +16198,7 @@ HOUSER.define('Master/Master_View',['Collections/SubView',
 
 HOUSER.define('Master/Master_Model',[
 ], function () {
-
+	
 
 	var MasterModel = Backbone.Model.extend({
 		defaults: {
@@ -25922,7 +25922,7 @@ HOUSER.define('js/core',[
 	'Master/Master_Model',
 	'js/Libs/parse'
 ], function (MasterView, MasterModel, parse) {
-
+	
 
 	var HouserCore = function () {
 		// Load the view manager so routes are handled.
@@ -25985,7 +25985,7 @@ HOUSER.define('js/core',[
 // Test is this getting added.
 ;
 HOUSER.require(['js/core'], function(core) {
-
+	
 	if (window.houser_loaded){
 		return;
 	}
