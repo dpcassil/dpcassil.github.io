@@ -15961,9 +15961,9 @@ HOUSER.define('Views/Property',[
 			ajax.proxyGet(ajax.api_url.zillow_deep_search, data).done(function (resp) {
 				if (resp) {
 					var zd,
-						xml_node = $.parseXML(xml.toJSON(resp.children[0])['#text']);
+						xml_node = $.parseXML(xml.toJSON(resp.children[0])['#text']).getElementsByTagName('result');
 					//$.parseXML(xml.toJSON(resp.children[0])['#text']).getElementsByTagName('result')
-					if (xml_node.getElementsByTagName('result').length) {
+					if (xml_node.length) {
 						zd = xml.toJSON(resp.getElementsByTagName('result')[0]);
 						model.set('zpid', zd.zpid['#text']);
 						model.set('baths', zd.bathrooms['#text']);
