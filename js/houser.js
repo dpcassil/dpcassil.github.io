@@ -15169,18 +15169,37 @@ HOUSER.define('js/ajax',[], function () {
 			api_keys: {
 				zillow: 'X1-ZWz1dehfmymz2j_7vqv1'
 			},
-			servers: {
-				live: 'http://houser-2.apphb.com/WebUtilities/',
-				dev: 'http://houser/WebUtilities/',
-				zillow: 'http://www.zillow.com/webservice/'
+			proxy: {
+				live: 'http://houser-2.apphb.com/WebUtilities/DetailsWebService.asmx/GetWebRequest',
+				dev: 'http://houser/WebUtilities/DetailsWebService.asmx/GetWebRequest'
+			},
+			api_url: {
+				zillow_deep_search: 'http://www.zillow.com/webservice/GetDeepSearchResults.htm'
 			},
 			service: {
 				details: {
-					getPropertyByDate: 'DetailsWebService.asmx/GetSaleDates'
+					getPropertyByDate: 'GetSaleDates'
 				},
 				zillow: {
 					deepSearch: 'GetDeepSearchResults.htm'
 				}
+			},
+			proxyGet: function (_url, data) {
+				var url = _url,
+					deferred = $.Deferred();
+
+				if (data.length > 0) {
+					url += '?'
+				}
+				_.each(data, function (item, index) {
+					url += Object.keys(item) + '=' + item + '&';
+				})
+				url.substring(0, url.length - 2); // Remove last &
+
+				$.get(this.proxy.live, url).done(function (resp) {
+					deferred.resolve(resp);
+				});
+				return deferred;
 			},
 			post: function (data, service, callback) {
 				this.callAjax("POST", data, service, callback);
@@ -15927,18 +15946,44 @@ HOUSER.define('Views/Property',[
 		/**
 		@Description:	Get data from zillow and or other sources..
 		**/
-		// addExtraData: function () {
-		// 	var self = this,
-		// 		deferred = $.Deferred(),
-		// 		model = self.model,
-		// 		data;
-		//
-		// 	data = {
-		// 		'zws-id': ajax.api_keys.zillow,
-		// 		address: (model.get('address')),
-		// 		citystatezip: (model.get('city') + '+' + model.get('state'))
-		// 	};
-		//
+		addExtraData: function () {
+			var self = this,
+				deferred = $.Deferred(),
+				model = self.model,
+				data;
+
+			data = {
+				'zws-id': ajax.api_keys.zillow,
+				address: (model.get('address')),
+				citystatezip: (model.get('city') + '+' + model.get('state'))
+			};
+
+			ajax.proxyGet(ajax.api_url.zillow_deep_search, data).done(function (resp) {
+				if (resp) {
+					var zd;
+					if (resp.getElementsByTagName('result').length) {
+						zd = xml.toJSON(resp.getElementsByTagName('result')[0]);
+						model.set('zpid', zd.zpid['#text']);
+						model.set('baths', zd.bathrooms['#text']);
+						model.set('beds', zd.bedrooms['#text']);
+						model.set('sqft', zd.finishedSqFt['#text']);
+						model.set('lot', zd.lotSizeSqFt['#text']);
+						model.set('year_built', zd.yearBuilt['#text']);
+						model.set('zest_avg', self.asDollar(zd.zestimate.amount['#text']));
+						model.set('zest_high', self.asDollar(zd.zestimate.valuationRange.high['#text']));
+						model.set('zest_low', self.asDollar(zd.zestimate.valuationRange.low['#text']));
+						model.set('last_sold_date', zd.lastSoldDate ? zd.lastSoldDate['#text'] : 'na');
+						model.set('last_sold_price', zd.lastSoldPrice ? '$' + self.asDollar(zd.lastSoldPrice['#text']) : 'na');
+						deferred.resolve();
+					} else {
+						console.log('Error! Zillow says: ' + $(resp.getElementsByTagName('message')).find('text').text());
+						deferred.resolve();
+					}
+
+				} else {
+					alert('Unkown zillow error.');
+				}
+			});
 		// 	ajax.genericCallXML('POST', data, ajax.servers.zillow, ajax.service.zillow.deepSearch, {
 		// 		success: function (resp) {
 		// 			if (resp) {
@@ -15971,8 +16016,8 @@ HOUSER.define('Views/Property',[
 		// 			deferred.resolve();
 		// 		}
 		// 	});
-		// 	return deferred;
-		// },
+			return deferred;
+		},
 
 		/**
 		@Description:	Render the view.
