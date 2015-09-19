@@ -15186,16 +15186,20 @@ HOUSER.define('js/ajax',[], function () {
 			},
 			proxyGet: function (_url, data) {
 				var url = _url,
-					deferred = $.Deferred();
+					deferred = $.Deferred(),
+					has_data = JSON.stringify(data) && JSON.stringify(data).length > 2;
 
-				if (JSON.stringify(data) && JSON.stringify(data).length > 2) {
+				if (has_data) {
 					url += '?'
 				}
 				_.each(data, function (item, key) {
 					url += key + '=' + item + '&';
 				})
-				url = url.substring(0, url.length - 1); // Remove last &
-				//url = url.replace(/\s/g, "+");
+
+				if (has_data) {
+					url = url.substring(0, url.length - 1); // Remove last &
+				}
+
 				$.get(this.proxy.live, {url: url}).done(function (resp) {
 					deferred.resolve(resp);
 				});
@@ -16047,6 +16051,7 @@ HOUSER.define('Views/Property',[
 		},
 		getPropertyImage: function (link) {
 			var get_req = ajax.proxyGet(link).done( function (resp) {
+				resp = resp.documentElement.childNodes[0].nodeValue
 				resp = resp.replace(/src="/g, 'data-src="');
 				var img_array = $(resp).find('a img[data-src*="sketches"]').map(function () {return $(this).data('src')}).sort();
 
