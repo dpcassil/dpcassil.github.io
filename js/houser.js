@@ -15935,11 +15935,11 @@ HOUSER.define('Views/Property',[
 			options = options || {};
 
 			self.model = HOUSER.current_view_model = HOUSER.current_prop;
-			// self.addExtraData().done(function () {
-			// 	//console.log(data);
-			// 	self.render();
-			// });
-			self.render();
+			self.addExtraData().done(function () {
+				//console.log(data);
+				self.render();
+			});
+			//self.render();
 
 		},
 
@@ -16044,7 +16044,7 @@ HOUSER.define('Views/Property',[
 			// body...
 		},
 		getPropertyImage: function (link) {
-			var get_req = $.get(link).done( function (resp) {
+			var get_req = ajax.proxyGet(link).done( function (resp) {
 				resp = resp.replace(/src="/g, 'data-src="');
 				var img_array = $(resp).find('a img[data-src*="sketches"]').map(function () {return $(this).data('src')}).sort();
 
@@ -16063,6 +16063,26 @@ HOUSER.define('Views/Property',[
 			});
 			console.log(get_req);
 		}
+		// getPropertyImage: function (link) {
+		// 	var get_req = $.get(link).done( function (resp) {
+		// 		resp = resp.replace(/src="/g, 'data-src="');
+		// 		var img_array = $(resp).find('a img[data-src*="sketches"]').map(function () {return $(this).data('src')}).sort();
+		//
+		// 		var loadImage = function (index) {
+		// 			if (index >= img_array.length) {
+		// 				return;
+		// 			}
+		// 			var link = img_array[index],
+		// 				img_link = 'http://www.oklahomacounty.org/assessor/Searches/' + link;
+		// 			$('.propertyImage').attr('src', img_link).error(function () {
+		// 				console.log('failed to load image');
+		// 				loadImage(index + 1);
+		// 			});
+		// 		};
+		// 		loadImage(0);
+		// 	});
+		// 	console.log(get_req);
+		// }
 	});
 
 	return View;
