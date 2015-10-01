@@ -15173,8 +15173,8 @@ HOUSER.define('js/ajax',[], function () {
 				live: 'http://houser-2.apphb.com/WebUtilities/DetailsWebService.asmx/',
 				dev: 'http://houser/WebUtilities/DetailsWebService.asmx/'
 			},
-			api_url: {
-				zillow_deep_search: 'http://www.zillow.com/webservice/GetDeepSearchResults.htm'
+			api: {
+				zillow: 'http://www.zillow.com/webservice/'
 			},
 			service: {
 				details: {
@@ -15589,16 +15589,122 @@ HOUSER.define('Collections/Property_List',[
 	return PropertyListCollection;
 });
 
-HOUSER.define('js/Data_Utils/Property',['js/ajax'], function (ajax) {
+HOUSER.define('js/Data_Utils/utility',[], function () {
+	var utility = function () {
+
+		return {
+			asDollar: function (n) {
+				n = parseInt(n);
+				return n.toFixed(2).replace(/./g, function(c, i, a) {
+				    return i && c !== "." && ((a.length - i) % 3 === 0) ? ',' + c : c;
+				});
+			},
+		};
+	};
+	return new utility();
+})
+;
+HOUSER.define('js/xml',[], function () {
+	var xml = function () {
+		return {
+			toJSON: function (xml) {
+
+				// Create the return object
+				var self = this,
+					obj = {};
+
+				if (xml.nodeType == 1) { // element
+					// do attributes
+					if (xml.attributes.length > 0) {
+					obj["@attributes"] = {};
+						for (var j = 0; j < xml.attributes.length; j++) {
+							var attribute = xml.attributes.item(j);
+							obj["@attributes"][attribute.nodeName] = attribute.nodeValue;
+						}
+					}
+				} else if (xml.nodeType == 3) { // text
+					obj = xml.nodeValue;
+				}
+
+				// do children
+				if (xml.hasChildNodes()) {
+					for(var i = 0; i < xml.childNodes.length; i++) {
+						var item = xml.childNodes.item(i);
+						var nodeName = item.nodeName;
+						if (typeof(obj[nodeName]) == "undefined") {
+							obj[nodeName] = self.toJSON(item);
+						} else {
+							if (typeof(obj[nodeName].push) == "undefined") {
+								var old = obj[nodeName];
+								obj[nodeName] = [];
+								obj[nodeName].push(old);
+							}
+							obj[nodeName].push(self.toJSON(item));
+						}
+					}
+				}
+				return obj;
+			}
+		};
+	};
+	return new xml();
+})
+;
+HOUSER.define('js/Data_Utils/Property',['js/ajax', './utility', 'js/xml',], function (ajax, utility, xml) {
 	var tps = function () {
 		return {
-			getSherifSaleDates: function() {
+			getSherifSaleDates: function () {
 				// TODO set last param to false (use_cache) we want live dates.
 				// TODO or better yet implement cache expiration and make this expire after a couple hours.
 				return ajax.post({}, ajax.service.details.getSaleDates, true, true);
 			},
-			getSherifSaleRecordForDate: function(date) {
+			getSherifSaleRecordForDate: function (date) {
 				return ajax.post({sDate: date}, ajax.service.details.getSaleRecord);
+			},
+			getZillowDeepSearch: function (model) {
+				var self = this,
+					deferred = $.Deferred(),
+					data;
+
+				data = {
+					'zws-id': ajax.api_keys.zillow,
+					address: (model.get('address')),
+					citystatezip: (model.get('city') + '+' + model.get('state'))
+				};
+
+				ajax.genericCallXML('POST', data, ajax.api.zillow, ajax.service.zillow.deepSearch, {
+					success: function (resp) {
+						if (resp) {
+							var zd;
+							if (resp.getElementsByTagName('result').length) {
+								zd = xml.toJSON(resp.getElementsByTagName('result')[0]);
+								model.set('zpid', zd.zpid['#text']);
+								model.set('baths', zd.bathrooms['#text']);
+								model.set('beds', zd.bedrooms['#text']);
+								model.set('sqft', zd.finishedSqFt['#text']);
+								model.set('lot', zd.lotSizeSqFt['#text']);
+								model.set('year_built', zd.yearBuilt['#text']);
+								model.set('zest_avg', utility.asDollar(zd.zestimate.amount['#text']));
+								model.set('zest_high', utility.asDollar(zd.zestimate.valuationRange.high['#text']));
+								model.set('zest_low', utility.asDollar(zd.zestimate.valuationRange.low['#text']));
+								model.set('last_sold_date', zd.lastSoldDate ? zd.lastSoldDate['#text'] : 'na');
+								model.set('last_sold_price', zd.lastSoldPrice ? '$' + utility.asDollar(zd.lastSoldPrice['#text']) : 'na');
+								deferred.resolve();
+							} else {
+								console.log('Error! Zillow says: ' + $(resp.getElementsByTagName('message')).find('text').text());
+								deferred.resolve();
+							}
+
+						} else {
+							alert('Unkown zillow error.');
+						}
+					},
+					error: function (resp) {
+						console.error(resp);
+						deferred.resolve();
+					}
+				});
+				return deferred;
 			}
 		}
 	};
@@ -15687,13 +15793,13 @@ HOUSER.define('Views/Property_Lists',[
 				);
 
 				 _.each(list, function(item) {
-					 var parsePropertyObject = new Parse.Object('properties', item);
-					 parsePropertyObject.save({key: key});
-					 parse_prop_collection.push(parsePropertyObject);
+					 //var parsePropertyObject = new Parse.Object('properties', item);
+					 //parsePropertyObject.save({key: key});
+					 //parse_prop_collection.push(parsePropertyObject);
 				 })
-				var parsePropertyCollection = new Parse.Object('PropertyCollections');
-				parsePropertyCollection.add(parse_prop_collection);
-				parsePropertyCollection.save({key: key});
+				//var parsePropertyCollection = new Parse.Object('PropertyCollections');
+				//parsePropertyCollection.add(parse_prop_collection);
+				//parsePropertyCollection.save({key: key});
 			});
 
 			//console.log(self.property_list_collections);
@@ -15715,7 +15821,7 @@ HOUSER.define('Views/Property_Lists',[
 	return View;
 });
 
-HOUSER.define('text!Templates/property_list.tmpl',[],function () { return '<div class="pages_flex_wrapper">\n\t<h3><%=list.get(\'name\')%></h3>\n\t<ul class="propertiesList">\n\t\t<%_.each(list.get(\'properties\').models, function (prop) { %>\n\t\t\t<li class="propertiesList_list houser_prop_item" data-id=<%=prop.get(\'account_id\')%>>\n\t\t\t\t<div class="propertiesList_item_set">\n\t\t\t\t\t<span class="propertiesList_item_primary"><%=prop.get(\'address\')%></span>\n\t\t\t\t\t<span class="propertiesList_item_primary">$45,000</span>\n\t\t\t\t</div>\n\t\t\t\t<div class="propertiesList_item_set">\n\t\t\t\t\t<span class="propertiesList_item_secondary"><%=prop.get(\'address\')%></span>\n\t\t\t\t</div>\n\t\t\t</li>\n\t\t<%});%>\n\t</ul>\n</div>\n';});
+HOUSER.define('text!Templates/property_list.tmpl',[],function () { return '<div class="pages_flex_wrapper">\n\t<h3><%=list.get(\'name\')%></h3>\n\t<ul class="propertiesList">\n\t\t<%_.each(list.get(\'properties\').models, function (prop) { %>\n\t\t\t<li class="propertiesList_list houser_prop_item" data-id=<%=prop.get(\'AccountNumber\')%>>\n\t\t\t\t<div class="propertiesList_item_set">\n\t\t\t\t\t<span class="propertiesList_item_primary"><%=prop.get(\'address\')%></span>\n\t\t\t\t\t<span class="propertiesList_item_primary">$45,000</span>\n\t\t\t\t</div>\n\t\t\t\t<div class="propertiesList_item_set">\n\t\t\t\t\t<span class="propertiesList_item_secondary"><%=prop.get(\'address\')%></span>\n\t\t\t\t</div>\n\t\t\t</li>\n\t\t<%});%>\n\t</ul>\n</div>\n';});
 
 HOUSER.define('Views/Property_List',[
 	'Views/SubViewSuper',
@@ -15765,7 +15871,7 @@ HOUSER.define('Views/Property_List',[
 				target = $(e.target).closest('li'),
 				prop = target.data("id");
 
-			HOUSER.current_prop = self.model.get('properties').findWhere({account_id: prop});
+			HOUSER.current_prop = self.model.get('properties').findWhere({AccountNumber: prop});
 			HOUSER.router.navigate('property', {trigger: true});
 		}
 	});
@@ -15775,52 +15881,6 @@ HOUSER.define('Views/Property_List',[
 
 HOUSER.define('text!Templates/property.tmpl',[],function () { return '<div class="property">\n\t<div class="propertyImage_wrapper">\n\t\t<img class="propertyImage">\n\t</div>\n\t<div class="propertyDetails">\n\t\t<div class="propertyDetails_address">\n\t\t\t<span><%=prop.get(\'address\')%></span>\n\t\t\t<span>|</span>\n\t\t\t<span><%=prop.get(\'city\')%></span>\n\t\t</div>\n\n\t\t<div class="propertyDetails_primary">\n\t\t\t<span class="propertyDetails_primary_item"><%=prop.get(\'beds\')%> Beds</span>\n\t\t\t<span class="propertyDetails_primary_item">|</span>\n\t\t\t<span class="propertyDetails_primary_item"><%=prop.get(\'baths\')%> Baths</span>\n\t\t\t<span class="propertyDetails_primary_item">|</span>\n\t\t\t<span class="propertyDetails_primary_item"><%=prop.get(\'sqft\')%> sqft</span>\n\t\t\t<span class="propertyDetails_primary_item">|</span>\n\t\t\t<span class="propertyDetails_primary_item">Built <%=prop.get(\'year_built\')%></span>\n\t\t</div>\n\t\t<div class="propertyDetails_secondary">\n\t\t\t<span class="propertyDetails_secondary_item">Lot <%=prop.get(\'lot\')%> sqft</span>\n\t\t</div>\n\t\t<div class="propertyDetials_price">\n\t\t\t<span class="propertyDetials_price_item">Price $<%=prop.get(\'Appraisal_Value\')%> (min $<%= parseInt(prop.get(\'Appraisal_Value\')) * .666%>)</span>\n\t\t</div>\n\t\t<div class="propertyDetails_additional">\n\t\t\t<span>Zillow Valuation</span>\n\t\t\t<ul class="propertyDetails_valuation">\n\t\t\t\t<li>\n\t\t\t\t\t<span class="propertyDetails_valuation_item">Low: $<%=prop.get(\'zest_low\')%></span>\n\t\t\t\t</li>\n\t\t\t\t<li>\n\t\t\t\t\t<span class="propertyDetails_valuation_item">AVG: $<%=prop.get(\'zest_avg\')%></span>\n\t\t\t\t</li>\n\t\t\t\t<li>\n\t\t\t\t\t<span class="propertyDetails_valuation_item">High: $<%=prop.get(\'zest_high\')%></span>\n\t\t\t\t</li>\n\t\t\t</ul>\n\t\t\t<span>Zillow Property History</span>\n\t\t\t<ul class="propertyDetails_history">\n\t\t\t\t<li>\n\t\t\t\t\t<span class="propertyDetails_history_item">Date: <%=prop.get(\'last_sold_date\')%></span>\n\t\t\t\t</li>\n\t\t\t\t<li>\n\t\t\t\t\t<span class="propertyDetails_history_item">Price: <%=prop.get(\'last_sold_price\')%></span>\n\t\t\t\t</li>\n\t\t\t</ul>\n\t\t</div>\n\n\t</div>\n</div>\n';});
 
-HOUSER.define('js/xml',[], function () {
-	var xml = function () {
-		return {
-			toJSON: function (xml) {
-
-				// Create the return object
-				var self = this,
-					obj = {};
-
-				if (xml.nodeType == 1) { // element
-					// do attributes
-					if (xml.attributes.length > 0) {
-					obj["@attributes"] = {};
-						for (var j = 0; j < xml.attributes.length; j++) {
-							var attribute = xml.attributes.item(j);
-							obj["@attributes"][attribute.nodeName] = attribute.nodeValue;
-						}
-					}
-				} else if (xml.nodeType == 3) { // text
-					obj = xml.nodeValue;
-				}
-
-				// do children
-				if (xml.hasChildNodes()) {
-					for(var i = 0; i < xml.childNodes.length; i++) {
-						var item = xml.childNodes.item(i);
-						var nodeName = item.nodeName;
-						if (typeof(obj[nodeName]) == "undefined") {
-							obj[nodeName] = self.toJSON(item);
-						} else {
-							if (typeof(obj[nodeName].push) == "undefined") {
-								var old = obj[nodeName];
-								obj[nodeName] = [];
-								obj[nodeName].push(old);
-							}
-							obj[nodeName].push(self.toJSON(item));
-						}
-					}
-				}
-				return obj;
-			}
-		};
-	};
-	return new xml();
-})
-;
 HOUSER.define('Views/Property',[
 	'Views/SubViewSuper',
 	'text!Templates/property.tmpl',
@@ -15861,77 +15921,9 @@ HOUSER.define('Views/Property',[
 		**/
 		addExtraData: function () {
 			var self = this,
-				deferred = $.Deferred(),
-				model = self.model,
-				data;
+				model = self.model;
 
-			data = {
-				'zws-id': ajax.api_keys.zillow,
-				address: (model.get('address')),
-				citystatezip: (model.get('city') + '+' + model.get('state'))
-			};
-
-			ajax.proxyGet(ajax.api_url.zillow_deep_search, data).done(function (resp) {
-				if (resp) {
-					var zd,
-						xml_node = $.parseXML(xml.toJSON(resp.children[0])['#text']).getElementsByTagName('result');
-					//$.parseXML(xml.toJSON(resp.children[0])['#text']).getElementsByTagName('result')
-					if (xml_node.length) {
-						zd = xml.toJSON(xml_node[0]);
-						model.set('zpid', zd.zpid['#text']);
-						model.set('baths', zd.bathrooms['#text']);
-						model.set('beds', zd.bedrooms['#text']);
-						model.set('sqft', zd.finishedSqFt['#text']);
-						model.set('lot', zd.lotSizeSqFt['#text']);
-						model.set('year_built', zd.yearBuilt['#text']);
-						model.set('zest_avg', self.asDollar(zd.zestimate.amount['#text']));
-						model.set('zest_high', self.asDollar(zd.zestimate.valuationRange.high['#text']));
-						model.set('zest_low', self.asDollar(zd.zestimate.valuationRange.low['#text']));
-						model.set('last_sold_date', zd.lastSoldDate ? zd.lastSoldDate['#text'] : 'na');
-						model.set('last_sold_price', zd.lastSoldPrice ? '$' + self.asDollar(zd.lastSoldPrice['#text']) : 'na');
-						deferred.resolve();
-					} else {
-						console.log('Error! Zillow says: ' + $(resp.getElementsByTagName('message')).find('text').text());
-						deferred.resolve();
-					}
-
-				} else {
-					alert('Unkown zillow error.');
-				}
-			});
-		// 	ajax.genericCallXML('POST', data, ajax.servers.zillow, ajax.service.zillow.deepSearch, {
-		// 		success: function (resp) {
-		// 			if (resp) {
-		// 				var zd;
-		// 				if (resp.getElementsByTagName('result').length) {
-		// 					zd = xml.toJSON(resp.getElementsByTagName('result')[0]);
-		// 					model.set('zpid', zd.zpid['#text']);
-		// 					model.set('baths', zd.bathrooms['#text']);
-		// 					model.set('beds', zd.bedrooms['#text']);
-		// 					model.set('sqft', zd.finishedSqFt['#text']);
-		// 					model.set('lot', zd.lotSizeSqFt['#text']);
-		// 					model.set('year_built', zd.yearBuilt['#text']);
-		// 					model.set('zest_avg', self.asDollar(zd.zestimate.amount['#text']));
-		// 					model.set('zest_high', self.asDollar(zd.zestimate.valuationRange.high['#text']));
-		// 					model.set('zest_low', self.asDollar(zd.zestimate.valuationRange.low['#text']));
-		// 					model.set('last_sold_date', zd.lastSoldDate ? zd.lastSoldDate['#text'] : 'na');
-		// 					model.set('last_sold_price', zd.lastSoldPrice ? '$' + self.asDollar(zd.lastSoldPrice['#text']) : 'na');
-		// 					deferred.resolve();
-		// 				} else {
-		// 					console.log('Error! Zillow says: ' + $(resp.getElementsByTagName('message')).find('text').text());
-		// 					deferred.resolve();
-		// 				}
-		//
-		// 			} else {
-		// 				alert('Unkown zillow error.');
-		// 			}
-		// 		},
-		// 		error: function (resp) {
-		// 			console.error(resp);
-		// 			deferred.resolve();
-		// 		}
-		// 	});
-			return deferred;
+			return tps.getZillowDeepSearch(model);
 		},
 
 		/**
@@ -15951,36 +15943,10 @@ HOUSER.define('Views/Property',[
 
 		},
 		// move to unit class
-		asDollar: function (n) {
-			n = parseInt(n);
-			return n.toFixed(2).replace(/./g, function(c, i, a) {
-			    return i && c !== "." && ((a.length - i) % 3 === 0) ? ',' + c : c;
-			});
-			// body...
-		},
-		getPropertyImage: function (link) {
-			var get_req = ajax.proxyGet(link).done( function (resp) {
-				resp = resp.documentElement.childNodes[0].nodeValue
-				resp = resp.replace(/src="/g, 'data-src="');
-				var img_array = $(resp).find('a img[data-src*="sketches"]').map(function () {return $(this).data('src')}).sort();
 
-				var loadImage = function (index) {
-					if (index >= img_array.length) {
-						return;
-					}
-					var link = img_array[index],
-						img_link = 'http://www.oklahomacounty.org/assessor/Searches/' + link;
-					$('.propertyImage').attr('src', img_link).error(function () {
-						console.log('failed to load image');
-						loadImage(index + 1);
-					});
-				};
-				loadImage(0);
-			});
-			console.log(get_req);
-		}
 		// getPropertyImage: function (link) {
-		// 	var get_req = $.get(link).done( function (resp) {
+		// 	var get_req = ajax.proxyGet(link).done( function (resp) {
+		// 		resp = resp.documentElement.childNodes[0].nodeValue
 		// 		resp = resp.replace(/src="/g, 'data-src="');
 		// 		var img_array = $(resp).find('a img[data-src*="sketches"]').map(function () {return $(this).data('src')}).sort();
 		//
@@ -15999,6 +15965,26 @@ HOUSER.define('Views/Property',[
 		// 	});
 		// 	console.log(get_req);
 		// }
+		getPropertyImage: function (link) {
+			var get_req = $.get(link).done( function (resp) {
+				resp = resp.replace(/src="/g, 'data-src="');
+				var img_array = $(resp).find('a img[data-src*="sketches"]').map(function () {return $(this).data('src')}).sort();
+
+				var loadImage = function (index) {
+					if (index >= img_array.length) {
+						return;
+					}
+					var link = img_array[index],
+						img_link = 'http://www.oklahomacounty.org/assessor/Searches/' + link;
+					$('.propertyImage').attr('src', img_link).error(function () {
+						console.log('failed to load image');
+						loadImage(index + 1);
+					});
+				};
+				loadImage(0);
+			});
+			console.log(get_req);
+		}
 	});
 
 	return View;
