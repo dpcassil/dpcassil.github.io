@@ -15661,6 +15661,39 @@ HOUSER.define('js/Data_Utils/Property',['js/ajax', './utility', 'js/xml',], func
 			getSherifSaleRecordForDate: function (date) {
 				return ajax.post({sDate: date}, ajax.service.details.getSaleRecord);
 			},
+			getAccountData: function (account_ids) {
+				var self = this,
+					query = Parse.Query('Account');
+
+				query.query.containedIn("ACCOUNTNO", account_ids);
+
+				query.find({
+					success: function(results) {
+						console.log(results);
+					},
+					error: function(error) {
+						console.log(error);
+					}
+				})
+			},
+			getImprovementData: function (account_ids) {
+				var self = this,
+					deferred = $.Deferred(),
+					query = new Parse.Query('Improvement');
+
+				query.containedIn("ACCOUNTNO", account_ids);
+
+				query.find({
+					success: function(results) {
+						deferred.resolve(results);
+					},
+					error: function(error) {
+						deferred.reject(error);
+					}
+				})
+
+				return deferred;
+			},
 			getZillowDeepSearch: function (model) {
 				var self = this,
 					deferred = $.Deferred(),
@@ -15821,13 +15854,14 @@ HOUSER.define('Views/Property_Lists',[
 	return View;
 });
 
-HOUSER.define('text!Templates/property_list.tmpl',[],function () { return '<div class="pages_flex_wrapper">\n\t<h3><%=list.get(\'name\')%></h3>\n\t<ul class="propertiesList">\n\t\t<%_.each(list.get(\'properties\').models, function (prop) { %>\n\t\t\t<li class="propertiesList_list houser_prop_item" data-id=<%=prop.get(\'AccountNumber\')%>>\n\t\t\t\t<div class="propertiesList_item_set">\n\t\t\t\t\t<span class="propertiesList_item_primary"><%=prop.get(\'address\')%></span>\n\t\t\t\t\t<span class="propertiesList_item_primary">$45,000</span>\n\t\t\t\t</div>\n\t\t\t\t<div class="propertiesList_item_set">\n\t\t\t\t\t<span class="propertiesList_item_secondary"><%=prop.get(\'address\')%></span>\n\t\t\t\t</div>\n\t\t\t</li>\n\t\t<%});%>\n\t</ul>\n</div>\n';});
+HOUSER.define('text!Templates/property_list.tmpl',[],function () { return '<div class="pages_flex_wrapper">\n\t<h3><%=list.get(\'name\')%></h3>\n\t<ul class="propertiesList">\n\t\t<%_.each(list.get(\'properties\').models, function (prop) { %>\n\t\t\t<li class="propertiesList_list houser_prop_item" data-id=<%=prop.get(\'AccountNumber\')%>>\n\t\t\t\t<div class="propertiesList_item_set">\n\t\t\t\t\t<span class="propertiesList_item_primary"><%=prop.get(\'address\')%></span>\n\t\t\t\t\t<span class="propertiesList_item_primary">$<%=prop.get(\'SalePrice\')%></span>\n\t\t\t\t</div>\n\t\t\t\t<div class="propertiesList_item_set">\n\t\t\t\t\t<span class="propertiesList_item_secondary"><%=prop.get(\'address\')%></span>\n\t\t\t\t</div>\n\t\t\t</li>\n\t\t<%});%>\n\t</ul>\n</div>\n';});
 
 HOUSER.define('Views/Property_List',[
 	'Views/SubViewSuper',
 	'text!Templates/property_list.tmpl',
-	'js/ajax'
-], function (SubView, _template, ajax) {
+	'js/ajax',
+	'js/Data_Utils/Property'
+], function (SubView, _template, ajax, property_util) {
 	
 
 	var View = SubView.extend({
@@ -15849,6 +15883,8 @@ HOUSER.define('Views/Property_List',[
 			options = options || {};
 
 			self.model = HOUSER.current_view_model = HOUSER.current_list;
+
+			self.addAdditionalDataToModel();
 			self.render();
 		},
 
@@ -15865,6 +15901,15 @@ HOUSER.define('Views/Property_List',[
 				$('.signin_flex_form').addClass('show');
 			}, 100);
 
+		},
+		addAdditionalDataToModel: function() {
+			var self = this,
+				account_ids;
+
+			account_ids = self.model.get('properties').pluck('AccountNumber');
+			property_util.getImprovementData(account_ids).done(function (data) {
+				self.model.set('extra_data', data);
+			});
 		},
 		propClick: function (e) {
 			var self = this,
