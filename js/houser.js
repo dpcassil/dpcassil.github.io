@@ -15909,6 +15909,7 @@ HOUSER.define('Views/Property_List',[
 			account_ids = self.model.get('properties').pluck('AccountNumber');
 			property_util.getImprovementData(account_ids).done(function (data) {
 				self.model.set('extra_data', data);
+				console.log(self.model);
 			});
 		},
 		propClick: function (e) {
